@@ -1,14 +1,19 @@
-import { PackingItem } from '@/lib/types';
+"use client";
+
+import { PackingItem } from "@/lib/types";
+import { useLocale, t } from "@/lib/i18n";
 
 interface PackingListProps {
   items: PackingItem[];
 }
 
 export default function PackingList({ items }: PackingListProps) {
+  const { locale } = useLocale();
+
   return (
     <div>
       <div className="text-[10px] font-bold text-[#7A8A9A] uppercase tracking-wider mb-2">
-        Pakkliste
+        {t("sidebar.pakkliste", locale)}
       </div>
       <div className="flex flex-wrap gap-1.5">
         {items.map((item) => (

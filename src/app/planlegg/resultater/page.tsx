@@ -13,10 +13,12 @@ import ActionPanel from "@/components/sidebar/ActionPanel";
 import LoadingSkeleton from "@/components/shared/LoadingSkeleton";
 import EmptyState from "@/components/shared/EmptyState";
 import Button from "@/components/ui/Button";
+import { useLocale, t } from "@/lib/i18n";
 import { Trip, City, Day } from "@/lib/types";
 
 export default function ResultaterPage() {
   const router = useRouter();
+  const { locale } = useLocale();
   const [trip, setTrip] = useState<Trip | null>(null);
   const [activeDay, setActiveDay] = useState(1);
   const [loading, setLoading] = useState(true);
@@ -105,11 +107,11 @@ export default function ResultaterPage() {
           </div>
         ) : (
           <EmptyState
-            title="Ingen reiseplan funnet"
-            description="Du må først generere en reiseplan. Start med å velge dine preferanser."
+            title={t("resultater.ingen-tittel", locale)}
+            description={t("resultater.ingen-desc", locale)}
             action={
               <Button onClick={() => router.push("/planlegg")}>
-                Planlegg reise
+                {t("resultater.planlegg", locale)}
               </Button>
             }
           />
@@ -120,13 +122,6 @@ export default function ResultaterPage() {
 
   const currentDay =
     trip.days.find((day) => day.dayNumber === activeDay) || trip.days[0];
-  const cities = [
-    ...new Set(
-      trip.days.flatMap((day) =>
-        day.activities.map((activity) => activity.location),
-      ),
-    ),
-  ] as City[];
 
   return (
     <Container className="max-w-[1200px]">

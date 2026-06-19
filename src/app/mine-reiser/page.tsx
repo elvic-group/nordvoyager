@@ -1,23 +1,30 @@
-'use client';
+"use client";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import Container from '@/components/layout/Container';
-import Button from '@/components/ui/Button';
-import EmptyState from '@/components/shared/EmptyState';
-import LoadingSkeleton from '@/components/shared/LoadingSkeleton';
-import Link from 'next/link';
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import Container from "@/components/layout/Container";
+import Button from "@/components/ui/Button";
+import EmptyState from "@/components/shared/EmptyState";
+import LoadingSkeleton from "@/components/shared/LoadingSkeleton";
+import { useLocale, t } from "@/lib/i18n";
 
 interface SavedTrip {
   id: string;
-  input: { startLocation: string; season: string; duration: number; interests: string[] };
+  input: {
+    startLocation: string;
+    season: string;
+    duration: number;
+    interests: string[];
+  };
   days: { title: string }[];
 }
 
 export default function MineReiserPage() {
   const router = useRouter();
+  const { locale } = useLocale();
   const [trips, setTrips] = useState<SavedTrip[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -25,26 +32,27 @@ export default function MineReiserPage() {
   useEffect(() => {
     async function fetchTrips() {
       try {
-        const res = await fetch('/api/trip');
-        if (!res.ok) throw new Error('Failed to load trips');
+        const res = await fetch("/api/trip");
+        if (!res.ok) throw new Error("Failed to load trips");
         const data = await res.json();
         setTrips(data.trips || []);
       } catch (err) {
-        setError('Kunne ikke laste reiser');
-        console.error('Failed to fetch trips:', err);
+        setError(t("generic.error", locale));
+        console.error("Failed to fetch trips:", err);
       } finally {
         setLoading(false);
       }
     }
+
     fetchTrips();
-  }, []);
+  }, [locale]);
 
   const handleDelete = async (id: string) => {
     try {
-      await fetch(`/api/trip/${id}`, { method: 'DELETE' });
+      await fetch(`/api/trip/${id}`, { method: "DELETE" });
       setTrips((prev) => prev.filter((trip) => trip.id !== id));
     } catch {
-      console.error('Failed to delete trip');
+      console.error("Failed to delete trip");
     }
   };
 
@@ -53,11 +61,15 @@ export default function MineReiserPage() {
       <div className="max-w-3xl mx-auto">
         <div className="flex justify-between items-center mb-6">
           <div>
-            <h1 className="text-xl font-bold text-[#15273F]">Mine reiser</h1>
-            <p className="text-sm text-[#5A6A7A] mt-0.5">Dine lagrede reiseplaner</p>
+            <h1 className="text-xl font-bold text-[#15273F]">
+              {t("trips.mine-reiser", locale)}
+            </h1>
+            <p className="text-sm text-[#5A6A7A] mt-0.5">
+              {t("trips.dine-reiser", locale)}
+            </p>
           </div>
           <Link href="/planlegg">
-            <Button size="sm">Ny reise</Button>
+            <Button size="sm">{t("trips.ny-reise", locale)}</Button>
           </Link>
         </div>
 
@@ -65,25 +77,29 @@ export default function MineReiserPage() {
           <LoadingSkeleton />
         ) : error ? (
           <EmptyState
-            title="Noe gikk galt"
+            title={t("generic.error", locale)}
             description={error}
-            action={<Button onClick={() => window.location.reload()}>Prøv igjen</Button>}
+            action={
+              <Button onClick={() => window.location.reload()}>
+                {t("generic.prov-igjen", locale)}
+              </Button>
+            }
           />
         ) : trips.length === 0 ? (
           <EmptyState
-            title="Ingen reiser enda"
-            description="Start med å planlegge din første reise til Nord-Norge."
+            title={t("trips.ingen", locale)}
+            description={t("trips.ingen-desc", locale)}
             action={
               <Link href="/planlegg">
-                <Button>Planlegg ny reise</Button>
+                <Button>{t("trips.ny-reise", locale)}</Button>
               </Link>
             }
           />
         ) : (
           <div className="space-y-3">
             {trips.map((trip) => {
-              const city = trip.input?.startLocation || '';
-              const season = trip.input?.season || '';
+              const city = trip.input?.startLocation || "";
+              const season = trip.input?.season || "";
               const duration = trip.input?.duration || 0;
               const activityCount = trip.days?.length || 0;
               const cityLabel = city.charAt(0).toUpperCase() + city.slice(1);
@@ -93,18 +109,21 @@ export default function MineReiserPage() {
                   key={trip.id}
                   className="bg-white border border-[#E0E2E5] rounded-[4px] p-4 hover:border-[#E5212D]/30 transition-colors cursor-pointer"
                   onClick={() => {
-                    sessionStorage.setItem('currentTrip', JSON.stringify(trip));
-                    router.push('/planlegg/resultater');
+                    sessionStorage.setItem("currentTrip", JSON.stringify(trip));
+                    router.push("/planlegg/resultater");
                   }}
                 >
                   <div className="flex justify-between items-start">
                     <div>
                       <div className="font-semibold text-sm text-[#15273F]">
-                        {cityLabel} — {duration} dager
+                        {cityLabel} — {duration} {t("trips.dager", locale)}
                       </div>
                       <div className="text-xs text-[#5A6A7A] mt-1">
-                        {season} · {activityCount} aktiviteter
-                        {trip.input?.interests?.length ? ` · ${trip.input.interests.slice(0, 3).join(', ')}` : ''}
+                        {season} · {activityCount}{" "}
+                        {t("itinerary.aktiviteter", locale)}
+                        {trip.input?.interests?.length
+                          ? ` · ${trip.input.interests.slice(0, 3).join(", ")}`
+                          : ""}
                       </div>
                     </div>
                     <button
@@ -113,10 +132,10 @@ export default function MineReiserPage() {
                         handleDelete(trip.id);
                       }}
                       className="text-xs text-[#E5212D] hover:underline px-2 py-1"
-                      aria-label="Slett reise"
+                      aria-label={`${t("trips.slett", locale)} ${locale === "nb" ? "reise" : "trip"}`}
                       type="button"
                     >
-                      Slett
+                      {t("trips.slett", locale)}
                     </button>
                   </div>
                 </div>

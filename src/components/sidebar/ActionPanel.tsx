@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useSession } from "next-auth/react";
 import Button from "@/components/ui/Button";
+import { useLocale, t } from "@/lib/i18n";
 
 interface ActionPanelProps {
   onRegenerate: () => void;
@@ -14,6 +15,7 @@ export default function ActionPanel({
   tripId,
 }: ActionPanelProps) {
   const { data: session } = useSession();
+  const { locale } = useLocale();
   const [sharing, setSharing] = useState(false);
   const [shareResult, setShareResult] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -28,7 +30,6 @@ export default function ActionPanel({
       const parsed = JSON.parse(trip);
       const tripIdToUse = tripId || parsed.id;
 
-      // Try creating a share token via API
       const res = await fetch("/api/trip/share", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -37,29 +38,38 @@ export default function ActionPanel({
 
       if (res.ok) {
         const data = await res.json();
+        const title =
+          locale === "nb" ? "NordVoyager reiseplan" : "NordVoyager itinerary";
+        const text =
+          locale === "nb"
+            ? `Sjekk ut min reiseplan til ${parsed.input?.startLocation || "Nord-Norge"}!`
+            : `Check out my itinerary to ${parsed.input?.startLocation || "Northern Norway"}!`;
+
         if (navigator.share) {
-          await navigator.share({
-            title: "NordVoyager reiseplan",
-            text: `Sjekk ut min reiseplan til ${parsed.input?.startLocation || "Nord-Norge"}!`,
-            url: data.shareUrl,
-          });
+          await navigator.share({ title, text, url: data.shareUrl });
         } else {
           await navigator.clipboard.writeText(data.shareUrl);
-          setShareResult("✅ Kopiert!");
+          setShareResult(t("sidebar.kopiert", locale));
           setTimeout(() => setShareResult(null), 3000);
         }
       } else {
-        // Fallback to basic share
         const baseUrl = window.location.origin;
+        const title =
+          locale === "nb" ? "NordVoyager reiseplan" : "NordVoyager itinerary";
+        const text =
+          locale === "nb"
+            ? `Sjekk ut min reiseplan til ${parsed.input?.startLocation || "Nord-Norge"}!`
+            : `Check out my itinerary to ${parsed.input?.startLocation || "Northern Norway"}!`;
+
         if (navigator.share) {
           await navigator.share({
-            title: "NordVoyager reiseplan",
-            text: `Sjekk ut min reiseplan til ${parsed.input?.startLocation || "Nord-Norge"}!`,
+            title,
+            text,
             url: `${baseUrl}/planlegg/resultater`,
           });
         } else {
           await navigator.clipboard.writeText(`${baseUrl}/planlegg/resultater`);
-          setShareResult("✅ Kopiert!");
+          setShareResult(t("sidebar.kopiert", locale));
           setTimeout(() => setShareResult(null), 3000);
         }
       }
@@ -86,13 +96,12 @@ export default function ActionPanel({
       });
 
       if (res.ok) {
-        setSaveResult("✅ Lagret!");
-        setTimeout(() => setSaveResult(null), 3000);
+        setSaveResult(t("sidebar.lagret", locale));
       } else {
-        setSaveResult("❌ Kunne ikke lagre");
+        setSaveResult(t("sidebar.lagre-feilet", locale));
       }
     } catch {
-      setSaveResult("❌ Kunne ikke lagre");
+      setSaveResult(t("sidebar.lagre-feilet", locale));
     } finally {
       setSaving(false);
     }
@@ -105,10 +114,10 @@ export default function ActionPanel({
   return (
     <div className="flex flex-col gap-1.5">
       <Button variant="primary" size="sm" onClick={onRegenerate}>
-        ↻ Generer på nytt
+        {t("itinerary.generer-pa-nytt", locale)}
       </Button>
       <Button variant="outline" size="sm" onClick={handleExportPDF}>
-        📤 Eksporter PDF
+        {t("sidebar.eksporter-pdf", locale)}
       </Button>
       <Button
         variant="outline"
@@ -116,7 +125,7 @@ export default function ActionPanel({
         onClick={handleShare}
         loading={sharing}
       >
-        {shareResult || "🔗 Del lenke"}
+        {shareResult || t("sidebar.del-lenke", locale)}
       </Button>
       {session?.user && (
         <Button
@@ -125,7 +134,7 @@ export default function ActionPanel({
           onClick={handleSave}
           loading={saving}
         >
-          {saveResult || "💾 Lagre reise"}
+          {saveResult || t("sidebar.lagre", locale)}
         </Button>
       )}
     </div>
