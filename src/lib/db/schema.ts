@@ -38,3 +38,17 @@ export const tripShares = pgTable("trip_shares", {
     .notNull()
     .defaultNow(),
 });
+
+export const reviews = pgTable("reviews", {
+  id: text("id").primaryKey(),
+  tripId: text("trip_id")
+    .notNull()
+    .references(() => trips.id, { onDelete: "cascade" }),
+  userId: text("user_id"),
+  authorName: text("author_name").notNull(),
+  rating: integer("rating").notNull(),
+  comment: text("comment"),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
+    .notNull()
+    .defaultNow(),
+});

@@ -15,6 +15,7 @@ import EmptyState from "@/components/shared/EmptyState";
 import Button from "@/components/ui/Button";
 import { useLocale, t } from "@/lib/i18n";
 import { Trip, City, Day } from "@/lib/types";
+import ReviewSection from "@/components/sidebar/ReviewSection";
 
 export default function ResultaterPage() {
   const router = useRouter();
@@ -158,6 +159,10 @@ export default function ResultaterPage() {
 
           <div className="bg-white border border-[#E0E2E5] rounded-[4px] p-4 space-y-4">
             <ActionPanel onRegenerate={handleRegenerate} tripId={trip.id} />
+          </div>
+
+          <div className="bg-white border border-[#E0E2E5] rounded-[4px] p-4">
+            {trip.id && <ReviewSection tripId={trip.id} />}
           </div>
         </aside>
       </div>

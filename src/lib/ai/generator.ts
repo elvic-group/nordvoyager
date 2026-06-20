@@ -4,6 +4,7 @@ import { z } from "zod";
 import { SYSTEM_PROMPT } from "./prompts";
 import { TripInput, Trip, Day, Activity } from "@/lib/types";
 import { generateId } from "@/lib/utils/formatters";
+import { getCoordinates } from "@/lib/utils/geography";
 
 const activitySchema = z.object({
   id: z.string(),
@@ -68,7 +69,7 @@ const openai = createOpenAI({
 });
 
 export async function generateTrip(input: TripInput): Promise<Trip> {
-  const userPrompt = buildUserPrompt(input);
+  const userPrompt = await buildUserPrompt(input);
 
   try {
     const { object } = await generateObject({
@@ -91,7 +92,7 @@ export async function* streamTrip(
 ): AsyncGenerator<
   { type: "day"; day: Day } | { type: "complete"; trip: Trip }
 > {
-  const userPrompt = buildUserPrompt(input);
+  const userPrompt = await buildUserPrompt(input);
 
   try {
     const { partialObjectStream } = await streamObject({
@@ -195,12 +196,39 @@ function enrichActivity(
   };
 }
 
-function buildUserPrompt(input: TripInput): string {
+async function buildUserPrompt(input: TripInput): Promise<string> {
+  let weatherContext = "";
+  try {
+    const coords = getCoordinates(input.startLocation);
+    if (coords) {
+      const res = await fetch(
+        `https://api.openweathermap.org/data/3.0/onecall?lat=${coords.lat}&lon=${coords.lng}&units=metric&exclude=minutely,hourly,alerts&appid=${process.env.OPENWEATHER_API_KEY || ""}`,
+        { signal: AbortSignal.timeout(3000) },
+      );
+      if (res.ok) {
+        const data = await res.json();
+        if (data.daily) {
+          const days = data.daily.slice(0, input.duration);
+          weatherContext =
+            "\n\nVÆRMELDING (bruk denne til å tilpasse aktiviteter):\n";
+          days.forEach((d: any, i: number) => {
+            const date = new Date(d.dt * 1000).toLocaleDateString("nb-NO");
+            weatherContext += `Dag ${i + 1} (${date}): ${d.weather[0].description}, ${Math.round(d.temp.max)}°C / ${Math.round(d.temp.min)}°C, skydekke ${d.clouds}%, nedbør ${Math.round(d.pop * 100)}%\n`;
+          });
+          weatherContext +=
+            "\nAnbefal innendørsaktiviteter (museer, mat, kultur) på dager med mye nedbør, og utendørsaktiviteter (fottur, hundekjøring, nordlysjakt) på dager med opphold.";
+        }
+      }
+    }
+  } catch {
+    // Weather fetch failed silently, use default prompt
+  }
+
   return `Planlegg en ${input.duration}-dagers reise til Nord-Norge.
 Interesser: ${input.interests.join(", ")}
 Sesong: ${input.season}
 Budsjett: ${input.budget}
-Startsted: ${input.startLocation}
+Startsted: ${input.startLocation}${weatherContext}
 
 Generer en komplett reiserute med aktiviteter, budsjett og pakkeliste.`;
 }
